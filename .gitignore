@@ -1,0 +1,12 @@
+# Compiled Object files
+*.o
+
+# Executables
+*.exe
+*.bin
+
+# Bin
+/bin
+
+# Doc (Generate as Part of Build)
+/docs
