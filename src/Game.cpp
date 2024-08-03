@@ -7,6 +7,7 @@
 #include <./include/Cube.h>		 // Include Cube header file
 #include <./include/Game.h>		 // Include Game header file
 #include <./include/stb_image.h> // Include single file header for loading images
+#include <./include/Maze.h>
 
 /* STB_IMAGE_IMPLEMENTATION should be defined only once */
 #define STB_IMAGE_IMPLEMENTATION // Define STB_IMAGE_IMPLEMENTATION only once
@@ -85,12 +86,32 @@ float x_offset, y_offset, z_offset; // offset on screen (Vertex Shader)
  *
  * @param settings Context settings for the window.
  */
-Game::Game(sf::ContextSettings settings) : window(VideoMode(800, 600),
-												  "Project I StarterKit 3D Game Scene",
-												  sf::Style::Default,
-												  settings)
+Game::Game(const sf::ContextSettings& settings)	: maze(10, 10), playerPosition(1.0f, 0.0f, 1.0f), playerSpeed(2.0f), window(VideoMode(800, 600), "Project I StarterKit 3D Game Scene", sf::Style::Default, settings) // Initialize the maze with desired dimensions
 {
-	DEBUG_MSG("\nGame::Game() Constructor\n");
+	// Create the SFML window with OpenGL context
+	window.create(sf::VideoMode(800, 600), "3D Maze Game", sf::Style::Default, settings);
+	window.setVerticalSyncEnabled(true);
+
+	// Initialize GLEW
+	glewExperimental = GL_TRUE;
+	if (glewInit() != GLEW_OK) {
+		std::cerr << "Failed to initialize GLEW" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// Set up OpenGL settings
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
+	// Set up the perspective projection matrix
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45.0, window.getSize().x / window.getSize().y, 0.1, 100.0);
+	glMatrixMode(GL_MODELVIEW);
+
+	{
+		DEBUG_MSG("\nGame::Game() Constructor\n");
+	}
 }
 
 /**
@@ -99,6 +120,71 @@ Game::Game(sf::ContextSettings settings) : window(VideoMode(800, 600),
 Game::~Game()
 {
 	DEBUG_MSG("\nGame::~Game() Destructor\n");
+}
+
+void Game::handleInput(float deltaTime)
+{
+	glm::vec3 previousPosition = playerPosition; // Save previous position for collision detection
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+		playerPosition.z -= playerSpeed * deltaTime;
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+		playerPosition.z += playerSpeed * deltaTime;
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+		playerPosition.x -= playerSpeed * deltaTime;
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+		playerPosition.x += playerSpeed * deltaTime;
+	}
+
+	// Collision detection with maze walls
+	int gridX = static_cast<int>(playerPosition.x);
+	int gridZ = static_cast<int>(playerPosition.z);
+	if (maze.getMaze()[gridX][gridZ] == 1) {
+		// Collision occurred, revert position
+		playerPosition = previousPosition;
+	}
+}
+
+void Game::update(float deltaTime)
+{
+	handleInput(deltaTime);
+}
+
+void Game::renderMaze()
+{
+	const auto& grid = maze.getMaze();
+	float size = 1.0f;  // Size of each cell
+
+	glColor3f(1.0f, 1.0f, 1.0f);  // Set color to white for the walls
+
+	for (int x = 0; x < grid.size(); ++x) {
+		for (int y = 0; y < grid[0].size(); ++y) {
+			if (grid[x][y] == 1) {
+				glPushMatrix();
+				glTranslatef(x * size, 0.0f, y * size);
+				glBegin(GL_QUADS);
+				// Draw the walls of the maze cell
+				glVertex3f(0.0f, 0.0f, 0.0f);
+				glVertex3f(size, 0.0f, 0.0f);
+				glVertex3f(size, size, 0.0f);
+				glVertex3f(0.0f, size, 0.0f);
+				glEnd();
+				glPopMatrix();
+			}
+		}
+	}
+}
+
+void Game::renderPlayer()
+{
+	glPushMatrix();
+	glTranslatef(playerPosition.x, playerPosition.y, playerPosition.z);
+	glColor3f(0.0f, 1.0f, 0.0f); // Set player color to green
+	glutSolidCube(0.5); // Render player as a cube
+	glPopMatrix();
 }
 
 /**
@@ -437,6 +523,37 @@ void Game::update()
  */
 void Game::run()
 {
+	sf::Clock clock;
+	while (window.isOpen())
+	{
+		float deltaTime = clock.restart().asSeconds();
+
+		// Handle events
+		sf::Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == sf::Event::Closed)
+			{
+				window.close();
+			}
+		}
+
+		update(deltaTime);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glLoadIdentity();
+		gluLookAt(
+			playerPosition.x, playerPosition.y + 2.0f, playerPosition.z + 5.0f, // Camera position
+			playerPosition.x, playerPosition.y, playerPosition.z, // Look at player
+			0.0f, 1.0f, 0.0f  // Up vector
+		);
+
+		renderMaze();
+		renderPlayer();
+
+		window.display();
+	}
 
 	// Initialize the game
 	initialise();
@@ -462,6 +579,8 @@ void Game::run()
 				// Set the flag to stop the game loop
 				isRunning = false;
 			}
+
+			
 
 			// Player Rotation
 			// Check for keyboard input for model rotation
@@ -489,7 +608,6 @@ void Game::run()
 				game_object[0]->setModelMatrix(rotate(game_object[0]->getModelMatrix(), 0.01f, glm::vec3(1.0f, 0.0f, 0.0f)));// Rotate
 			}
 
-			// NPC Translation
 			// Check for keyboard input for model translation
 			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 			{
@@ -549,7 +667,7 @@ void Game::run()
 
 			// Boss Translation
 			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num8) || sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad8))
+			/*else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num8) || sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad8))
 			{
 				// Translate the model upwards about the y-axis
 				game_object[2]->setModelMatrix(translate(game_object[2]->getModelMatrix(), glm::vec3(0.0f, 0.1f, 0.0f)));// Translate UP
@@ -580,7 +698,7 @@ void Game::run()
 			{
 				// Reset to Identity Matrix
 				game_object[0]->setModelMatrix(mat4(1.0f));// Reset
-			}
+			}*/
 		}
 
 		// Update game state
@@ -771,3 +889,4 @@ void Game::unload()
 	DEBUG_MSG("Cleaning up...ENDS");
 #endif
 }
+

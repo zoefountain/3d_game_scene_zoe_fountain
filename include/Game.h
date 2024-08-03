@@ -14,6 +14,7 @@ const int GAME_OBJECTS	= 2;	// Total Number of GamesObjects
 #include <SFML/Graphics.hpp> // Simple and Fast Multimedia Library (Graphics module)
 #include <SFML/OpenGL.hpp>   // OpenGL extension for SFML
 
+
 // Include GLM headers for mathematics library
 #include <glm/glm.hpp>                  // OpenGL Mathematics
 #include <glm/gtc/matrix_transform.hpp> // Matrix transformations
@@ -22,6 +23,7 @@ const int GAME_OBJECTS	= 2;	// Total Number of GamesObjects
 // Include custom headers
 #include <./include/Debug.h>      // Debugging utilities
 #include <./include/GameObject.h> // Game object class
+#include "Maze.h" //includes the maze header
 
 // Using directives to avoid typing std::, sf::, and glm:: prefixes
 using namespace std; // Standard C++ namespace
@@ -46,7 +48,7 @@ public:
      *
      * @param settings SFML ContextSettings object for configuring the SFML window.
      */
-    Game(sf::ContextSettings settings); // Constructor with SFML context settings
+    Game(sf::ContextSettings& settings); // Constructor with SFML context settings
 
     /**
      * @brief Destructor for the Game class.
@@ -64,6 +66,15 @@ private:
     Clock clock;                 // SFML Clock for timing
     Time time;                   // SFML Time for time-related operations
     bool isRunning = false;      // Flag to track game state
+
+    Maze maze;
+    glm::vec3 playerPosition;
+    float playerSpeed;
+    void handleInput(float deltaTime);
+    void update(float deltaTime);
+    void renderMaze();
+    void renderPlayer();
+
 
     /**
      * @brief Method to initialize the game.
