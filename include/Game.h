@@ -8,6 +8,7 @@ const int GAME_OBJECTS	= 2;	// Total Number of GamesObjects
 #include <string>   // For string manipulation
 #include <sstream>  // For string streams
 #include <iostream> // For standard input and output operations
+#include <vector>
 
 // Include OpenGL and GLEW headers
 #include <GL/glew.h>         // OpenGL Extension Wrangler Library
@@ -23,7 +24,7 @@ const int GAME_OBJECTS	= 2;	// Total Number of GamesObjects
 // Include custom headers
 #include <./include/Debug.h>      // Debugging utilities
 #include <./include/GameObject.h> // Game object class
-#include "Maze.h" //includes the maze header
+#include <./include/Maze.h> //includes the maze header
 
 // Using directives to avoid typing std::, sf::, and glm:: prefixes
 using namespace std; // Standard C++ namespace
@@ -48,21 +49,18 @@ public:
      *
      * @param settings SFML ContextSettings object for configuring the SFML window.
      */
-    Game(sf::ContextSettings& settings); // Constructor with SFML context settings
+    // Constructor declaration
+    Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings);
+    void run();// Method to run the game
 
     /**
      * @brief Destructor for the Game class.
      */
     ~Game(); // Destructor
 
-    /**
-     * @brief Method to run the game.
-     */
-    void run(); // Method to run the game
-
 private:
-    GameObject *game_object[3];  // Array of game objects
-    RenderWindow window;         // SFML RenderWindow for rendering graphics
+    std::vector<GameObject*> game_objects; // Declare a vector of GameObject pointers
+    sf::RenderWindow window;    // SFML RenderWindow for rendering graphics
     Clock clock;                 // SFML Clock for timing
     Time time;                   // SFML Time for time-related operations
     bool isRunning = false;      // Flag to track game state
@@ -74,7 +72,6 @@ private:
     void update(float deltaTime);
     void renderMaze();
     void renderPlayer();
-
 
     /**
      * @brief Method to initialize the game.

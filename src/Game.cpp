@@ -8,6 +8,9 @@
 #include <./include/Game.h>		 // Include Game header file
 #include <./include/stb_image.h> // Include single file header for loading images
 #include <./include/Maze.h>
+#include <GL/glew.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 /* STB_IMAGE_IMPLEMENTATION should be defined only once */
 #define STB_IMAGE_IMPLEMENTATION // Define STB_IMAGE_IMPLEMENTATION only once
@@ -86,7 +89,8 @@ float x_offset, y_offset, z_offset; // offset on screen (Vertex Shader)
  *
  * @param settings Context settings for the window.
  */
-Game::Game(const sf::ContextSettings& settings)	: maze(10, 10), playerPosition(1.0f, 0.0f, 1.0f), playerSpeed(2.0f), window(VideoMode(800, 600), "Project I StarterKit 3D Game Scene", sf::Style::Default, settings) // Initialize the maze with desired dimensions
+Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
+	: maze(mazeWidth, mazeHeight), playerPosition(1.0f, 0.0f, 1.0f), playerSpeed(2.0f) // Initialize the maze and player
 {
 	// Create the SFML window with OpenGL context
 	window.create(sf::VideoMode(800, 600), "3D Maze Game", sf::Style::Default, settings);
@@ -109,9 +113,52 @@ Game::Game(const sf::ContextSettings& settings)	: maze(10, 10), playerPosition(1
 	gluPerspective(45.0, window.getSize().x / window.getSize().y, 0.1, 100.0);
 	glMatrixMode(GL_MODELVIEW);
 
-	{
-		DEBUG_MSG("\nGame::Game() Constructor\n");
-	}
+	// Initialize game objects
+	game_objects.push_back(new GameObject(TYPE::PLAYER));
+}
+
+static void drawCube(float size) {
+	float halfSize = size / 2.0f;
+
+	glBegin(GL_QUADS);
+
+	// Front face
+	glVertex3f(-halfSize, -halfSize, halfSize);
+	glVertex3f(halfSize, -halfSize, halfSize);
+	glVertex3f(halfSize, halfSize, halfSize);
+	glVertex3f(-halfSize, halfSize, halfSize);
+
+	// Back face
+	glVertex3f(-halfSize, -halfSize, -halfSize);
+	glVertex3f(-halfSize, halfSize, -halfSize);
+	glVertex3f(halfSize, halfSize, -halfSize);
+	glVertex3f(halfSize, -halfSize, -halfSize);
+
+	// Left face
+	glVertex3f(-halfSize, -halfSize, -halfSize);
+	glVertex3f(-halfSize, -halfSize, halfSize);
+	glVertex3f(-halfSize, halfSize, halfSize);
+	glVertex3f(-halfSize, halfSize, -halfSize);
+
+	// Right face
+	glVertex3f(halfSize, -halfSize, -halfSize);
+	glVertex3f(halfSize, halfSize, -halfSize);
+	glVertex3f(halfSize, halfSize, halfSize);
+	glVertex3f(halfSize, -halfSize, halfSize);
+
+	// Top face
+	glVertex3f(-halfSize, halfSize, -halfSize);
+	glVertex3f(-halfSize, halfSize, halfSize);
+	glVertex3f(halfSize, halfSize, halfSize);
+	glVertex3f(halfSize, halfSize, -halfSize);
+
+	// Bottom face
+	glVertex3f(-halfSize, -halfSize, -halfSize);
+	glVertex3f(halfSize, -halfSize, -halfSize);
+	glVertex3f(halfSize, -halfSize, halfSize);
+	glVertex3f(-halfSize, -halfSize, halfSize);
+
+	glEnd();
 }
 
 /**
@@ -122,8 +169,7 @@ Game::~Game()
 	DEBUG_MSG("\nGame::~Game() Destructor\n");
 }
 
-void Game::handleInput(float deltaTime)
-{
+void Game::handleInput(float deltaTime) {
 	glm::vec3 previousPosition = playerPosition; // Save previous position for collision detection
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
@@ -153,8 +199,7 @@ void Game::update(float deltaTime)
 	handleInput(deltaTime);
 }
 
-void Game::renderMaze()
-{
+void Game::renderMaze() {
 	const auto& grid = maze.getMaze();
 	float size = 1.0f;  // Size of each cell
 
@@ -178,12 +223,11 @@ void Game::renderMaze()
 	}
 }
 
-void Game::renderPlayer()
-{
+void Game::renderPlayer() {
 	glPushMatrix();
 	glTranslatef(playerPosition.x, playerPosition.y, playerPosition.z);
 	glColor3f(0.0f, 1.0f, 0.0f); // Set player color to green
-	glutSolidCube(0.5); // Render player as a cube
+	drawCube(0.5f); // Render player as a cube
 	glPopMatrix();
 }
 
@@ -211,14 +255,8 @@ void Game::initialise()
 
 	DEBUG_MSG("\n******** Init GameObjects STARTS ********\n");
 
-	game_object[0] = new GameObject(TYPE::PLAYER);
-	game_object[0]->setPosition(vec3(0.0001f, 0.0f, 0.0f));
-
-	game_object[1] = new GameObject(TYPE::NPC);
-	game_object[1]->setPosition(vec3(0.0003f, 0.0f, 0.0f));
-
-	game_object[2] = new GameObject(TYPE::BOSS);
-	game_object[2]->setPosition(vec3(0.0003f, 0.0f, 0.0f));
+	game_objects = new GameObject(TYPE::PLAYER);
+	game_objects->setPosition(vec3(0.0001f, 0.0f, 0.0f));
 
 	DEBUG_MSG("\n******** Init GameObjects ENDS ********\n");
 
@@ -257,9 +295,9 @@ void Game::initialise()
 
 	DEBUG_MSG("\n******** Model information STARTS ********\n");
 	// Vertices (3) x,y,z , Colors (4) RGBA, UV/ST (2)
-	int countVERTICES = game_object[0]->getVertexCount();
-	int countCOLORS = game_object[0]->getColorCount();
-	int countUVS = game_object[0]->getUVCount();
+	int countVERTICES = game_objects->getVertexCount();
+	int countCOLORS = game_objects->getColorCount();
+	int countUVS = game_objects->getUVCount();
 	DEBUG_MSG("\n******** Model information ENDS ********\n");
 
 	// Vertices (3) x,y,z , Colours (4) RGBA, UV/ST (2)
@@ -269,7 +307,7 @@ void Game::initialise()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vib);
 
 	// Count of Indices
-	int countINDICES = game_object[0]->getIndexCount();
+	int countINDICES = game_objects->getIndexCount();
 
 	DEBUG_MSG("\nVertices : " + to_string(countVERTICES));
 	DEBUG_MSG("Colors : " + to_string(countCOLORS));
@@ -494,14 +532,14 @@ void Game::update()
 #endif
 	// Update the Model View Projection matrix by combining the projection, view, and model matrices
 
-	for (unsigned int i = 0; i < sizeof(game_object) / sizeof(game_object[0]); i++){
+	for (unsigned int i = 0; i < sizeof(game_objects) / sizeof(game_objects); i++){
 
 		// MVP = PROJECTION * VIEW * MODEL (GameObject Model)
-		game_object[i]->setMVPMatrix(projection * view * game_object[i]->getModelMatrix());
+		game_objects->setMVPMatrix(projection * view * game_objects->getModelMatrix());
 
 #if (DEBUG >= 2)
-	DEBUG_MSG("MVP : " + game_object[i]->enumToString());
-	DEBUG_MSG(glm::to_string(game_object[i]->getModelMatrix()));
+	DEBUG_MSG("MVP : " + game_objects->enumToString());
+	DEBUG_MSG(glm::to_string(game_objects->getModelMatrix()));
 #endif
 
 	}
@@ -521,19 +559,16 @@ void Game::update()
  * Method contains the main game loop where events are handled, the game state is updated (Game::update()), and
  * the scene is rendered (Game::render()). The loop runs until the isRunning flag is false.
  */
-void Game::run()
-{
+void Game::run() {
 	sf::Clock clock;
-	while (window.isOpen())
-	{
+
+	while (window.isOpen()) {
 		float deltaTime = clock.restart().asSeconds();
 
 		// Handle events
 		sf::Event event;
-		while (window.pollEvent(event))
-		{
-			if (event.type == sf::Event::Closed)
-			{
+		while (window.pollEvent(event)) {
+			if (event.type == sf::Event::Closed) {
 				window.close();
 			}
 		}
@@ -554,164 +589,6 @@ void Game::run()
 
 		window.display();
 	}
-
-	// Initialize the game
-	initialise();
-
-	// Create an event object for handling window events
-	Event event;
-
-	// Main game loop
-	while (isRunning)
-	{
-
-		// Check if the game is running in debug mode and print debug message
-#if (DEBUG >= 2)
-		DEBUG_MSG("Game running...");
-#endif
-
-		// Handle events such as window close or keyboard input
-		while (window.pollEvent(event))
-		{
-			// Check if the window is being closed
-			if (event.type == Event::Closed)
-			{
-				// Set the flag to stop the game loop
-				isRunning = false;
-			}
-
-			
-
-			// Player Rotation
-			// Check for keyboard input for model rotation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-			{
-				// Rotate the model upwards around the y-axis
-				game_object[0]->setModelMatrix(rotate(game_object[0]->getModelMatrix(), 0.01f, glm::vec3(0.0f, 1.0f, 0.0f)));// Rotate
-			}
-
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-			{
-				// Rotate the model upwards around the y-axis
-				game_object[0]->setModelMatrix(rotate(game_object[0]->getModelMatrix(), -0.01f, glm::vec3(0.0f, 1.0f, 0.0f)));// Rotate
-			}
-
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-			{
-				// Rotate the model upwards around the x-axis
-				game_object[0]->setModelMatrix(rotate(game_object[0]->getModelMatrix(), -0.01f, glm::vec3(1.0f, 0.0f, 0.0f)));// Rotate
-			}
-
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-			{
-				// Rotate the model downwards around the x-axis
-				game_object[0]->setModelMatrix(rotate(game_object[0]->getModelMatrix(), 0.01f, glm::vec3(1.0f, 0.0f, 0.0f)));// Rotate
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-			{
-				// Translate the model upwards about the y-axis
-				game_object[0]->setModelMatrix(translate(game_object[0]->getModelMatrix(), glm::vec3(0.0f, 0.1f, 0.0f)));// Translate UP
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-			{
-				// Translate the model downwards along the y-axis
-				game_object[0]->setModelMatrix(translate(game_object[0]->getModelMatrix(), glm::vec3(0.0f, -0.1f, 0.0f)));// Translate Down
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-			{
-				// Translate the model leftwards along the x-axis
-				game_object[0]->setModelMatrix(translate(game_object[0]->getModelMatrix(), glm::vec3(-0.1f, 0.0f, 0.0f)));// Translate Left
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-			{
-				// Translate the model rightwards along the x-axis
-				game_object[0]->setModelMatrix(translate(game_object[0]->getModelMatrix(), glm::vec3(0.1f, 0.0f, 0.0f)));// Translate Right
-			}
-
-			// NPC Translation
-			// Check for keyboard input for model translation
-			/*else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-			{
-				// Translate the model upwards about the y-axis
-				game_object[1]->setModelMatrix(translate(game_object[1]->getModelMatrix(), glm::vec3(0.0f, 0.1f, 0.0f)));// Translate UP
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-			{
-				// Translate the model downwards along the y-axis
-				game_object[1]->setModelMatrix(translate(game_object[1]->getModelMatrix(), glm::vec3(0.0f, -0.1f, 0.0f)));// Translate Down
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-			{
-				// Translate the model leftwards along the x-axis
-				game_object[1]->setModelMatrix(translate(game_object[1]->getModelMatrix(), glm::vec3(-0.1f, 0.0f, 0.0f)));// Translate Left
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-			{
-				// Translate the model rightwards along the x-axis
-				game_object[1]->setModelMatrix(translate(game_object[1]->getModelMatrix(), glm::vec3(0.1f, 0.0f, 0.0f)));// Translate Right
-			}*/
-
-			// Boss Translation
-			// Check for keyboard input for model translation
-			/*else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num8) || sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad8))
-			{
-				// Translate the model upwards about the y-axis
-				game_object[2]->setModelMatrix(translate(game_object[2]->getModelMatrix(), glm::vec3(0.0f, 0.1f, 0.0f)));// Translate UP
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2) || sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad2))
-			{
-				// Translate the model downwards along the y-axis
-				game_object[2]->setModelMatrix(translate(game_object[2]->getModelMatrix(), glm::vec3(0.0f, -0.1f, 0.0f)));// Translate Down
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4) || sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad4))
-			{
-				// Translate the model leftwards along the x-axis
-				game_object[2]->setModelMatrix(translate(game_object[2]->getModelMatrix(), glm::vec3(-0.1f, 0.0f, 0.0f)));// Translate Left
-			}
-
-			// Check for keyboard input for model translation
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num6) || sf::Keyboard::isKeyPressed(sf::Keyboard::Numpad6))
-			{
-				// Translate the model rightwards along the x-axis
-				game_object[2]->setModelMatrix(translate(game_object[2]->getModelMatrix(), glm::vec3(0.1f, 0.0f, 0.0f)));// Translate Right
-			}
-			
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
-			{
-				// Reset to Identity Matrix
-				game_object[0]->setModelMatrix(mat4(1.0f));// Reset
-			}*/
-		}
-
-		// Update game state
-		update();
-
-		// Render the game scene
-		render();
-	}
-
-#if (DEBUG >= 2)
-	DEBUG_MSG("Calling Cleanup...");
-#endif
-	unload();
 }
 
 /**
@@ -793,14 +670,14 @@ void Game::render()
 	// VBO Data....vertices, colours and UV's appended
 	// Add the Vertices for all your GameOjects, Colors and UVS
 
-	for (unsigned int i = 0; i < sizeof(game_object) / sizeof(game_object[0]); i++)
+	for (unsigned int i = 0; i < sizeof(game_objects) / sizeof(game_objects); i++)
 	{
-		glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), game_object[i]->getVertex());
+		glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), game_objects->getVertex());
 		glBufferSubData(GL_ARRAY_BUFFER, 3 * VERTICES * sizeof(GLfloat), 4 * COLOURS * sizeof(GLfloat), colours);
 		glBufferSubData(GL_ARRAY_BUFFER, ((3 * VERTICES) + (4 * COLOURS)) * sizeof(GLfloat), 2 * UVS * sizeof(GLfloat), uvs);
 
 		// Send transformation to shader mvp uniform [0][0] is start of array
-		glUniformMatrix4fv(mvpID, 1, GL_FALSE, &(game_object[i]->getMVPMatrix())[0][0]);
+		glUniformMatrix4fv(mvpID, 1, GL_FALSE, &(game_objects->getMVPMatrix())[0][0]);
 
 		// Set Active Texture .... 32 GL_TEXTURE0 .... GL_TEXTURE31
 		glActiveTexture(GL_TEXTURE0);

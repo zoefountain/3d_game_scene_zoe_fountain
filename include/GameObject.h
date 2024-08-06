@@ -25,11 +25,9 @@ using namespace std;
 namespace gpp
 {
 	// GameObject Type
-	enum class TYPE
-	{
+	enum class TYPE {
 		PLAYER,
-		NPC,
-		BOSS
+		
 	};
 
 	/**

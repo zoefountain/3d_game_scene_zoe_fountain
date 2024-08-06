@@ -14,7 +14,7 @@ using namespace gpp; // GPP namespace
  * UV data is copied to all faces of the GameObject.
  * The position of the GameObject is set to the origin (0, 0, 0).
  */
-GameObject::GameObject(TYPE type)
+GameObject::GameObject(TYPE type) : type(type)
 {
     // Copy the Cube contents into GameObject
     memcpy(this->vertex, vertices, sizeof(this->vertex));
@@ -160,10 +160,6 @@ string GameObject::enumToString()
     {
     case TYPE::PLAYER:
         return "Player GameObject";
-    case TYPE::NPC:
-        return "NPC GameObject";
-    case TYPE::BOSS:
-        return "BOSS GameObject";
     default:
         return "Unknown GameObject";
     }
