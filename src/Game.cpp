@@ -113,8 +113,7 @@ Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
 	gluPerspective(45.0, window.getSize().x / window.getSize().y, 0.1, 100.0);
 	glMatrixMode(GL_MODELVIEW);
 
-	// Initialize game objects
-	game_objects.push_back(new GameObject(TYPE::PLAYER));
+	game_objects.push_back(new GameObject(gpp::TYPE::PLAYER)); // Correctly add the player object to the vector
 }
 
 static void drawCube(float size) {
@@ -169,6 +168,22 @@ Game::~Game()
 	DEBUG_MSG("\nGame::~Game() Destructor\n");
 }
 
+void Game::updateMVPMatrix()
+{
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)window.getSize().x / (float)window.getSize().y, 0.1f, 100.0f);
+	glm::mat4 view = glm::lookAt(
+		glm::vec3(playerPosition.x, playerPosition.y + 2.0f, playerPosition.z + 5.0f), // Camera position
+		glm::vec3(playerPosition.x, playerPosition.y, playerPosition.z),               // Look at player
+		glm::vec3(0.0f, 1.0f, 0.0f)                                                    // Up vector
+	);
+
+	for (auto& gameObject : game_objects) {
+		if (gameObject != nullptr) {
+			gameObject->setMVPMatrix(projection * view * gameObject->getModelMatrix());
+		}
+	}
+}
+
 void Game::handleInput(float deltaTime) {
 	glm::vec3 previousPosition = playerPosition; // Save previous position for collision detection
 
@@ -197,6 +212,7 @@ void Game::handleInput(float deltaTime) {
 void Game::update(float deltaTime)
 {
 	handleInput(deltaTime);
+	updateMVPMatrix(); // Update the MVP matrix for all game objects
 }
 
 void Game::renderMaze() {
@@ -255,7 +271,7 @@ void Game::initialise()
 
 	DEBUG_MSG("\n******** Init GameObjects STARTS ********\n");
 
-	game_objects = new GameObject(TYPE::PLAYER);
+	game_objects.push_back(new GameObject(gpp::TYPE::PLAYER));
 	game_objects->setPosition(vec3(0.0001f, 0.0f, 0.0f));
 
 	DEBUG_MSG("\n******** Init GameObjects ENDS ********\n");
@@ -667,35 +683,27 @@ void Game::render()
 		throw runtime_error("\nERROR: mvpID not found\n");
 	}
 
-	// VBO Data....vertices, colours and UV's appended
-	// Add the Vertices for all your GameOjects, Colors and UVS
 
-	for (unsigned int i = 0; i < sizeof(game_objects) / sizeof(game_objects); i++)
-	{
-		glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), game_objects->getVertex());
-		glBufferSubData(GL_ARRAY_BUFFER, 3 * VERTICES * sizeof(GLfloat), 4 * COLOURS * sizeof(GLfloat), colours);
-		glBufferSubData(GL_ARRAY_BUFFER, ((3 * VERTICES) + (4 * COLOURS)) * sizeof(GLfloat), 2 * UVS * sizeof(GLfloat), uvs);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
 
-		// Send transformation to shader mvp uniform [0][0] is start of array
-		glUniformMatrix4fv(mvpID, 1, GL_FALSE, &(game_objects->getMVPMatrix())[0][0]);
+	// Camera setup
+	gluLookAt(
+		playerPosition.x, playerPosition.y + 2.0f, playerPosition.z + 5.0f, // Camera position
+		playerPosition.x, playerPosition.y, playerPosition.z,               // Look at player
+		0.0f, 1.0f, 0.0f                                                   // Up vector
+	);
 
-		// Set Active Texture .... 32 GL_TEXTURE0 .... GL_TEXTURE31
-		glActiveTexture(GL_TEXTURE0);
-		glUniform1i(textureID, 0); // 0 .... 31
+	renderMaze();
+	renderPlayer();
 
-		// Set pointers for each parameter (with appropriate starting positions)
-		// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glVertexAttribPointer.xml
-		glVertexAttribPointer(positionID, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		glVertexAttribPointer(colorID, 4, GL_FLOAT, GL_FALSE, 0, (void *)(3 * VERTICES * sizeof(GLfloat)));
-		glVertexAttribPointer(uvID, 2, GL_FLOAT, GL_FALSE, 0, (void *)(((3 * VERTICES) + (4 * COLOURS)) * sizeof(GLfloat)));
-
-		// Enable Arrays
-		glEnableVertexAttribArray(positionID);
-		glEnableVertexAttribArray(colorID);
-		glEnableVertexAttribArray(uvID);
-
-		// Draw Element Arrays
-		glDrawElements(GL_TRIANGLES, 3 * INDICES, GL_UNSIGNED_INT, NULL);
+	// Render each game object
+	for (auto& gameObject : game_objects) {
+		if (gameObject != nullptr) {
+			glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), gameObject->getVertex());
+			glUniformMatrix4fv(mvpID, 1, GL_FALSE, &(gameObject->getMVPMatrix())[0][0]);
+			glDrawArrays(GL_TRIANGLES, 0, VERTICES);
+		}
 	}
 
 	window.display();

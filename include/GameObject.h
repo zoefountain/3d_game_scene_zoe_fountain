@@ -27,7 +27,6 @@ namespace gpp
 	// GameObject Type
 	enum class TYPE {
 		PLAYER,
-		
 	};
 
 	/**
@@ -49,6 +48,9 @@ namespace gpp
 		mat4 mvp;	   // Model View Project Matrix
 		TYPE type;	   // GameOject Type
 
+		glm::mat4 modelMatrix;
+		glm::mat4 mvpMatrix;
+
 	public:
 		/**
 		 * @brief Default constructor for the GameObject class.
@@ -58,6 +60,9 @@ namespace gpp
 		 * The position of the GameObject is set to the origin (0, 0, 0).
 		 */
 		GameObject(TYPE type);
+
+		
+		
 
 		/**
 		 * @brief Destructor for the GameObject class.
@@ -85,7 +90,7 @@ namespace gpp
 		 *
 		 * @return The model matrix of the game object as a mat4 matrix.
 		 */
-		mat4 getModelMatrix();
+		glm::mat4 getModelMatrix() const;
 
 		/**
 		 * @brief Setter method for setting the model of the game object.
@@ -106,7 +111,7 @@ namespace gpp
 		 *
 		 * @param model The new model view projection of the game object as a mat4 matrix.
 		 */
-		void setMVPMatrix(mat4 model);
+		void setMVPMatrix(const glm::mat4& mvp);
 
 		/**
 		 * @brief Getter method for retrieving the first element of the vertex array.

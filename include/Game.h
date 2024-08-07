@@ -58,6 +58,8 @@ public:
      */
     ~Game(); // Destructor
 
+    void updateMVPMatrix();
+
 private:
     std::vector<GameObject*> game_objects; // Declare a vector of GameObject pointers
     sf::RenderWindow window;    // SFML RenderWindow for rendering graphics
