@@ -272,7 +272,7 @@ void Game::initialise()
 	DEBUG_MSG("\n******** Init GameObjects STARTS ********\n");
 
 	game_objects.push_back(new GameObject(gpp::TYPE::PLAYER));
-	game_objects->setPosition(vec3(0.0001f, 0.0f, 0.0f));
+	game_objects[0]->setPosition(glm::vec3(0.0001f, 0.0f, 0.0f));
 
 	DEBUG_MSG("\n******** Init GameObjects ENDS ********\n");
 
@@ -286,7 +286,7 @@ void Game::initialise()
 
 		// Copy UV coordinates from the first face to the current face
 		memcpy(&uvs[uv_start_position], &uvs[0], 2 * 4 * sizeof(GLfloat)); // Each vertex has 2 UV coordinates,
-																		   // and there are 4 vertices per face
+		// and there are 4 vertices per face
 	}
 
 	// 	for (int i = 1; i < 6; i++) {
@@ -311,254 +311,263 @@ void Game::initialise()
 
 	DEBUG_MSG("\n******** Model information STARTS ********\n");
 	// Vertices (3) x,y,z , Colors (4) RGBA, UV/ST (2)
-	int countVERTICES = game_objects->getVertexCount();
-	int countCOLORS = game_objects->getColorCount();
-	int countUVS = game_objects->getUVCount();
-	DEBUG_MSG("\n******** Model information ENDS ********\n");
+	for (auto& gameObject : game_objects) {
+		if (gameObject != nullptr) {
+			int countVERTICES = gameObject->getVertexCount();
+			int countCOLORS = gameObject->getColorCount();
+			int countUVS = gameObject->getUVCount();
+			DEBUG_MSG("\n******** Model information ENDS ********\n");
 
-	// Vertices (3) x,y,z , Colours (4) RGBA, UV/ST (2)
-	glBufferData(GL_ARRAY_BUFFER, ((3 * VERTICES) + (4 * COLOURS) + (2 * UVS)) * sizeof(GLfloat), NULL, GL_STATIC_DRAW);
+			// Vertices (3) x,y,z , Colours (4) RGBA, UV/ST (2)
+			glBufferData(GL_ARRAY_BUFFER, ((3 * VERTICES) + (4 * COLOURS) + (2 * UVS)) * sizeof(GLfloat), NULL, GL_STATIC_DRAW);
 
-	glGenBuffers(1, &vib); // Generate Vertex Index Buffer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vib);
+			glGenBuffers(1, &vib); // Generate Vertex Index Buffer
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vib);
 
-	// Count of Indices
-	int countINDICES = game_objects->getIndexCount();
+			// Count of Indices
+			for (auto& gameObject : game_objects) {
+				if (gameObject != nullptr) {
+					int countINDICES = gameObject->getIndexCount();
 
-	DEBUG_MSG("\nVertices : " + to_string(countVERTICES));
-	DEBUG_MSG("Colors : " + to_string(countCOLORS));
-	DEBUG_MSG("UVs : " + to_string(countUVS));
-	DEBUG_MSG("Indexes : " + to_string(countINDICES));
+					DEBUG_MSG("\nVertices : " + to_string(countVERTICES));
+					DEBUG_MSG("Colors : " + to_string(countCOLORS));
+					DEBUG_MSG("UVs : " + to_string(countUVS));
+					DEBUG_MSG("Indexes : " + to_string(countINDICES));
 
-	// Indices to be drawn
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * INDICES * sizeof(GLuint), indices, GL_STATIC_DRAW);
+					// Indices to be drawn
+					glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * INDICES * sizeof(GLuint), indices, GL_STATIC_DRAW);
 
-	// NOTE: uniforms values must be used within Shader so that they
-	// can be retreived
-	// Define and compile Vertex Shader
-	const char *vs_src =
-		"#version 130\n\n"
-		"\n"
-		"in vec3 sv_position;\n"
-		"in vec4 sv_colour;\n"
-		"in vec2 sv_uv;\n\n"
-		"\n"
-		"out vec4 colour;\n"
-		"out vec2 uv;\n\n"
-		"\n"
-		"uniform mat4 sv_mvp;\n"
-		"\n"
-		"void main() {\n"
-		"	colour = sv_colour;\n"
-		"	uv = sv_uv;\n"
-		//"	gl_Position = vec4(sv_position, 1);\n"
-		"	gl_Position = sv_mvp * vec4(sv_position, 1 );\n"
-		"}\n"; // Vertex Shader Src
+					// NOTE: uniforms values must be used within Shader so that they
+					// can be retreived
+					// Define and compile Vertex Shader
+					const char* vs_src =
+						"#version 130\n\n"
+						"\n"
+						"in vec3 sv_position;\n"
+						"in vec4 sv_colour;\n"
+						"in vec2 sv_uv;\n\n"
+						"\n"
+						"out vec4 colour;\n"
+						"out vec2 uv;\n\n"
+						"\n"
+						"uniform mat4 sv_mvp;\n"
+						"\n"
+						"void main() {\n"
+						"	colour = sv_colour;\n"
+						"	uv = sv_uv;\n"
+						//"	gl_Position = vec4(sv_position, 1);\n"
+						"	gl_Position = sv_mvp * vec4(sv_position, 1 );\n"
+						"}\n"; // Vertex Shader Src
 
-	DEBUG_MSG("\n******** Vertex Shader src STARTS ********\n");
-	DEBUG_MSG(string(vs_src));
-	DEBUG_MSG("\n******** Vertex Shader src ENDS ********\n");
+					DEBUG_MSG("\n******** Vertex Shader src STARTS ********\n");
+					DEBUG_MSG(string(vs_src));
+					DEBUG_MSG("\n******** Vertex Shader src ENDS ********\n");
 
-	DEBUG_MSG("Setting Up Vertex Shader");
+					DEBUG_MSG("Setting Up Vertex Shader");
 
-	// Compile Vertex Shader
-	vsid = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vsid, 1, (const GLchar **)&vs_src, NULL);
-	glCompileShader(vsid);
+					// Compile Vertex Shader
+					vsid = glCreateShader(GL_VERTEX_SHADER);
+					glShaderSource(vsid, 1, (const GLchar**)&vs_src, NULL);
+					glCompileShader(vsid);
 
-	// Check if Vertex Shader is Compiled
-	glGetShaderiv(vsid, GL_COMPILE_STATUS, &isCompiled);
+					// Check if Vertex Shader is Compiled
+					glGetShaderiv(vsid, GL_COMPILE_STATUS, &isCompiled);
 
-	if (isCompiled == GL_TRUE)
-	{
-		DEBUG_MSG("Vertex Shader Compiled");
-		isCompiled = GL_FALSE;
+					if (isCompiled == GL_TRUE)
+					{
+						DEBUG_MSG("Vertex Shader Compiled");
+						isCompiled = GL_FALSE;
+					}
+					else
+					{
+						GLint logLength = 0;
+						glGetShaderiv(vsid, GL_INFO_LOG_LENGTH, &logLength);
+						char* errorLog = new char[logLength];
+						glGetShaderInfoLog(vsid, logLength, &logLength, &errorLog[0]);
+						DEBUG_MSG("\n******** Vertex Shader ErrorLog STARTS ********\n");
+						DEBUG_MSG(string(errorLog));
+						DEBUG_MSG("\n******** Vertex Shader ErrorLog ENDS ********\n");
+						throw runtime_error("\nERROR: Vertex Shader Compilation Error\n");
+					}
+				}
+			}
+
+			// Define and compile Fragment Shader
+			const char* fs_src =
+				"#version 130\n\n"
+				"\n"
+				"uniform sampler2D f_texture;\n"
+				"\n"
+				"in vec4 colour;\n"
+				"in vec2 uv;\n"
+				"\n"
+				"out vec4 fColor;\n"
+				"\n"
+				"void main() {\n"
+				"	vec4 lightColor = vec4(1.0f, 0.0f, 1.0f, 1.0f);\n"
+				"	fColor = lightColor * (colour + texture2D(f_texture, uv));\n"
+				"\n"
+				"}\n"; // Fragment Shader Src
+
+			DEBUG_MSG("\n******** Fragment Shader src STARTS ********\n");
+			DEBUG_MSG(string(fs_src));
+			DEBUG_MSG("\n******** Fragment Shader src ENDS ********\n");
+
+			DEBUG_MSG("Setting Up Fragment Shader");
+
+			// Compile Fragment Shader
+			fsid = glCreateShader(GL_FRAGMENT_SHADER);
+			glShaderSource(fsid, 1, (const GLchar**)&fs_src, NULL);
+			glCompileShader(fsid);
+
+			// Check is Shader Compiled
+			glGetShaderiv(fsid, GL_COMPILE_STATUS, &isCompiled);
+
+			if (isCompiled == GL_TRUE)
+			{
+				DEBUG_MSG("Fragment Shader Compiled");
+				isCompiled = GL_FALSE;
+			}
+			else
+			{
+				GLint logLength = 0;
+				glGetShaderiv(fsid, GL_INFO_LOG_LENGTH, &logLength);
+				char* errorLog = new char[logLength];
+				glGetShaderInfoLog(fsid, logLength, &logLength, &errorLog[0]);
+				DEBUG_MSG("\n******** Vertex Shader ErrorLog STARTS ********\n");
+				DEBUG_MSG(string(errorLog));
+				DEBUG_MSG("\n******** Vertex Shader ErrorLog ENDS ********\n");
+				throw runtime_error("\nERROR: Fragment Shader Compilation Error\n");
+			}
+
+			// Create and link shader program
+			DEBUG_MSG("\n******** Shader Linking STARTS ********\n");
+			DEBUG_MSG("Setting Up and Linking Shader");
+			progID = glCreateProgram();
+			glAttachShader(progID, vsid);
+			glAttachShader(progID, fsid);
+			glLinkProgram(progID);
+
+			// Check if Shader Program is linked
+			glGetProgramiv(progID, GL_LINK_STATUS, &isLinked);
+
+			if (isLinked == 1)
+			{
+				DEBUG_MSG("Vertex and Fragment Shader Linked");
+			}
+			else
+			{
+				throw runtime_error("\nERROR: Vertex and Fragment Shader Link Error\n");
+			}
+			DEBUG_MSG("\n******** Shader Linking ENDS ********\n");
+			// Use Shader Program on GPU
+			glUseProgram(progID);
+
+			// Set image data
+			// https://github.com/nothings/stb/blob/master/stb_image.h
+			// Load texture image data
+			img_data = stbi_load(filename.c_str(), &width, &height, &comp_count, colour_components);
+
+			if (img_data == NULL)
+			{
+				throw runtime_error("\nERROR: Texture not loaded " + filename + "\n");
+			}
+
+			// Enable 2D texturing
+			DEBUG_MSG("\n******** Enabling Textures STARTS ********\n");
+			glEnable(GL_TEXTURE_2D);
+			glGenTextures(1, &to[0]);
+			glBindTexture(GL_TEXTURE_2D, to[0]);
+
+			// Texture wrapping
+			// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+			// Texture filtering
+			// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			// Transfer texture image data to GPU
+			// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml
+			glTexImage2D(
+				GL_TEXTURE_2D,	  // 2D Texture Image
+				0,				  // Mipmapping Level
+				GL_RGBA,		  // GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA, GL_RGB, GL_BGR, GL_RGBA
+				width,			  // Width
+				height,			  // Height
+				0,				  // Border
+				GL_RGBA,		  // Bitmap
+				GL_UNSIGNED_BYTE, // Specifies Data type of image data
+				img_data		  // Image Data
+			);
+
+			DEBUG_MSG("\n******** Enabling Textures ENDS ********\n");
+
+			// Set up Projection Matrix
+			DEBUG_MSG("\n******** MVP STARTS ********\n");
+			projection = perspective(
+				45.0f,		 // Field of View 45 degrees
+				4.0f / 3.0f, // Aspect ratio: 4:3
+				5.0f,		 // Display Range Min : 0.1f unit
+				100.0f		 // Display Range Max : 100.0f unit
+			);
+
+			// Set up Camera Matrix
+			view = lookAt(
+				vec3(0.0f, 4.0f, 10.0f), // Camera (x,y,z), in World Space
+				vec3(0.0f, 0.0f, 0.0f),	 // Camera looking at origin
+				vec3(0.0f, 1.0f, 0.0f)	 // 0.0f, 1.0f, 0.0f Look Down and 0.0f, -1.0f, 0.0f Look Up
+			);
+
+			DEBUG_MSG("\n******** MVP ENDS ********\n");
+
+			// Enable Depth Test for accurate rendering
+			DEBUG_MSG("\n******** CULLING ENABLE STARTS ********\n");
+			glEnable(GL_DEPTH_TEST);
+			glDepthFunc(GL_LESS);
+			glEnable(GL_CULL_FACE);
+			DEBUG_MSG("\n******** CULLING ENABLE ENDS ********\n");
+
+			DEBUG_MSG("\n******** OpenGL Error Check STARTS ********\n");
+			GLenum error = glGetError();
+			if (error != GL_NO_ERROR)
+			{
+				throw runtime_error("ERROR: OpenGL Error : " + to_string(error));
+			}
+			DEBUG_MSG("\n******** OpenGL Error Check ENDS ********\n");
+
+			// Load Font
+			font.loadFromFile("./assets/fonts/BBrick.ttf");
+
+			DEBUG_MSG("\n******** Initialisation Procedure ENDS ********\n");
+		}
 	}
-	else
-	{
-		GLint logLength = 0;
-		glGetShaderiv(vsid, GL_INFO_LOG_LENGTH, &logLength);
-		char *errorLog = new char[logLength];
-		glGetShaderInfoLog(vsid, logLength, &logLength, &errorLog[0]);
-		DEBUG_MSG("\n******** Vertex Shader ErrorLog STARTS ********\n");
-		DEBUG_MSG(string(errorLog));
-		DEBUG_MSG("\n******** Vertex Shader ErrorLog ENDS ********\n");
-		throw runtime_error("\nERROR: Vertex Shader Compilation Error\n");
-	}
-
-	// Define and compile Fragment Shader
-	const char *fs_src =
-		"#version 130\n\n"
-		"\n"
-		"uniform sampler2D f_texture;\n"
-		"\n"
-		"in vec4 colour;\n"
-		"in vec2 uv;\n"
-		"\n"
-		"out vec4 fColor;\n"
-		"\n"
-		"void main() {\n"
-		"	vec4 lightColor = vec4(1.0f, 0.0f, 1.0f, 1.0f);\n"
-		"	fColor = lightColor * (colour + texture2D(f_texture, uv));\n"
-		"\n"
-		"}\n"; // Fragment Shader Src
-
-	DEBUG_MSG("\n******** Fragment Shader src STARTS ********\n");
-	DEBUG_MSG(string(fs_src));
-	DEBUG_MSG("\n******** Fragment Shader src ENDS ********\n");
-
-	DEBUG_MSG("Setting Up Fragment Shader");
-
-	// Compile Fragment Shader
-	fsid = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fsid, 1, (const GLchar **)&fs_src, NULL);
-	glCompileShader(fsid);
-
-	// Check is Shader Compiled
-	glGetShaderiv(fsid, GL_COMPILE_STATUS, &isCompiled);
-
-	if (isCompiled == GL_TRUE)
-	{
-		DEBUG_MSG("Fragment Shader Compiled");
-		isCompiled = GL_FALSE;
-	}
-	else
-	{
-		GLint logLength = 0;
-		glGetShaderiv(fsid, GL_INFO_LOG_LENGTH, &logLength);
-		char *errorLog = new char[logLength];
-		glGetShaderInfoLog(fsid, logLength, &logLength, &errorLog[0]);
-		DEBUG_MSG("\n******** Vertex Shader ErrorLog STARTS ********\n");
-		DEBUG_MSG(string(errorLog));
-		DEBUG_MSG("\n******** Vertex Shader ErrorLog ENDS ********\n");
-		throw runtime_error("\nERROR: Fragment Shader Compilation Error\n");
-	}
-
-	// Create and link shader program
-	DEBUG_MSG("\n******** Shader Linking STARTS ********\n");
-	DEBUG_MSG("Setting Up and Linking Shader");
-	progID = glCreateProgram();
-	glAttachShader(progID, vsid);
-	glAttachShader(progID, fsid);
-	glLinkProgram(progID);
-
-	// Check if Shader Program is linked
-	glGetProgramiv(progID, GL_LINK_STATUS, &isLinked);
-
-	if (isLinked == 1)
-	{
-		DEBUG_MSG("Vertex and Fragment Shader Linked");
-	}
-	else
-	{
-		throw runtime_error("\nERROR: Vertex and Fragment Shader Link Error\n");
-	}
-	DEBUG_MSG("\n******** Shader Linking ENDS ********\n");
-	// Use Shader Program on GPU
-	glUseProgram(progID);
-
-	// Set image data
-	// https://github.com/nothings/stb/blob/master/stb_image.h
-	// Load texture image data
-	img_data = stbi_load(filename.c_str(), &width, &height, &comp_count, colour_components);
-
-	if (img_data == NULL)
-	{
-		throw runtime_error("\nERROR: Texture not loaded " + filename + "\n");
-	}
-
-	// Enable 2D texturing
-	DEBUG_MSG("\n******** Enabling Textures STARTS ********\n");
-	glEnable(GL_TEXTURE_2D);
-	glGenTextures(1, &to[0]);
-	glBindTexture(GL_TEXTURE_2D, to[0]);
-
-	// Texture wrapping
-	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-	// Texture filtering
-	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexParameter.xml
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// Transfer texture image data to GPU
-	// https://www.khronos.org/opengles/sdk/docs/man/xhtml/glTexImage2D.xml
-	glTexImage2D(
-		GL_TEXTURE_2D,	  // 2D Texture Image
-		0,				  // Mipmapping Level
-		GL_RGBA,		  // GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA, GL_RGB, GL_BGR, GL_RGBA
-		width,			  // Width
-		height,			  // Height
-		0,				  // Border
-		GL_RGBA,		  // Bitmap
-		GL_UNSIGNED_BYTE, // Specifies Data type of image data
-		img_data		  // Image Data
-	);
-
-	DEBUG_MSG("\n******** Enabling Textures ENDS ********\n");
-
-	// Set up Projection Matrix
-	DEBUG_MSG("\n******** MVP STARTS ********\n");
-	projection = perspective(
-		45.0f,		 // Field of View 45 degrees
-		4.0f / 3.0f, // Aspect ratio: 4:3
-		5.0f,		 // Display Range Min : 0.1f unit
-		100.0f		 // Display Range Max : 100.0f unit
-	);
-
-	// Set up Camera Matrix
-	view = lookAt(
-		vec3(0.0f, 4.0f, 10.0f), // Camera (x,y,z), in World Space
-		vec3(0.0f, 0.0f, 0.0f),	 // Camera looking at origin
-		vec3(0.0f, 1.0f, 0.0f)	 // 0.0f, 1.0f, 0.0f Look Down and 0.0f, -1.0f, 0.0f Look Up
-	);
-
-	DEBUG_MSG("\n******** MVP ENDS ********\n");
-
-	// Enable Depth Test for accurate rendering
-	DEBUG_MSG("\n******** CULLING ENABLE STARTS ********\n");
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	glEnable(GL_CULL_FACE);
-	DEBUG_MSG("\n******** CULLING ENABLE ENDS ********\n");
-
-	DEBUG_MSG("\n******** OpenGL Error Check STARTS ********\n");
-	GLenum error = glGetError();
-	if (error != GL_NO_ERROR)
-	{
-		throw runtime_error("ERROR: OpenGL Error : " + to_string(error));
-	}
-	DEBUG_MSG("\n******** OpenGL Error Check ENDS ********\n");
-
-	// Load Font
-	font.loadFromFile("./assets/fonts/BBrick.ttf");
-
-	DEBUG_MSG("\n******** Initialisation Procedure ENDS ********\n");
 }
-
 /**
  * @brief Updates the game state.
  */
-void Game::update()
-{
+void Game::update() {
 #if (DEBUG >= 2)
 	DEBUG_MSG("Updating... MVP");
 #endif
 	// Update the Model View Projection matrix by combining the projection, view, and model matrices
 
-	for (unsigned int i = 0; i < sizeof(game_objects) / sizeof(game_objects); i++){
-
-		// MVP = PROJECTION * VIEW * MODEL (GameObject Model)
-		game_objects->setMVPMatrix(projection * view * game_objects->getModelMatrix());
+	for (auto& gameObject : game_objects) 
+	{
+		if (gameObject != nullptr) 
+		{  // Check if the pointer is valid
+		    // Set the MVP matrix for the current GameObject
+			gameObject->setMVPMatrix(projection * view * gameObject->getModelMatrix());
+		}
+	}
 
 #if (DEBUG >= 2)
 	DEBUG_MSG("MVP : " + game_objects->enumToString());
 	DEBUG_MSG(glm::to_string(game_objects->getModelMatrix()));
 #endif
 
-	}
 
 #if (DEBUG >= 2)
 	DEBUG_MSG("MVP : " + glm::to_string(mvp));

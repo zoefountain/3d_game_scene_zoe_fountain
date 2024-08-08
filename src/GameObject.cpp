@@ -69,14 +69,20 @@ void GameObject::setPosition(vec3 position) { this->position = position; }
  *
  * @return The model of the GameObject as a mat4 matrix.
  */
-mat4 GameObject::getModelMatrix() { return this->model; }
+glm::mat4 GameObject::getModelMatrix() const 
+{
+    return this->model;
+}
 
 /**
  * @brief Setter method for setting the model of the GameObject.
  *
  * @param model The new model of the GameObject as a mat4 matrix.
  */
-void GameObject::setModelMatrix(mat4 model) { this->model = model; }
+void GameObject::setMVPMatrix(glm::mat4 mvp) 
+{
+    this->mvp = mvp;
+}
 
 /**
  * @brief Getter method for retrieving the model view projection of the GameObject.

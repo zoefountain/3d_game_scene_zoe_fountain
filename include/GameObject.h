@@ -44,7 +44,7 @@ namespace gpp
 
 		// GameObject Attributes
 		vec3 position; // Position of the game object in 3D space
-		mat4 model;	   // Model Matrix for GameObject
+		glm::mat4 model;	   // Model Matrix for GameObject
 		mat4 mvp;	   // Model View Project Matrix
 		TYPE type;	   // GameOject Type
 
@@ -111,7 +111,7 @@ namespace gpp
 		 *
 		 * @param model The new model view projection of the game object as a mat4 matrix.
 		 */
-		void setMVPMatrix(const glm::mat4& mvp);
+		void setMVPMatrix(glm::mat4 mvp);
 
 		/**
 		 * @brief Getter method for retrieving the first element of the vertex array.
