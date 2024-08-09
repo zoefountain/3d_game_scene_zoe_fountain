@@ -96,7 +96,7 @@ mat4 GameObject::getMVPMatrix() { return this->mvp; }
  *
  * @param model The new model view projection of the GameObject as a mat4 matrix.
  */
-void GameObject::setMVPMatrix(mat4 mvp) { this->mvp = mvp; }
+
 
 /**
  * @brief Getter method for retrieving the first element of the vertex array.

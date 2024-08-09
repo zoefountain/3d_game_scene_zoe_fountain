@@ -221,8 +221,8 @@ void Game::renderMaze() {
 
 	glColor3f(1.0f, 1.0f, 1.0f);  // Set color to white for the walls
 
-	for (int x = 0; x < grid.size(); ++x) {
-		for (int y = 0; y < grid[0].size(); ++y) {
+	for (std::size_t x = 0; x < grid.size(); ++x) {
+		for (std::size_t y = 0; y < grid[x].size(); ++y) {
 			if (grid[x][y] == 1) {
 				glPushMatrix();
 				glTranslatef(x * size, 0.0f, y * size);
