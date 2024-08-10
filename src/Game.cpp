@@ -90,7 +90,13 @@ float x_offset, y_offset, z_offset; // offset on screen (Vertex Shader)
  * @param settings Context settings for the window.
  */
 Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
-	: maze(mazeWidth, mazeHeight), playerPosition(1.0f, 0.0f, 1.0f), playerSpeed(2.0f) // Initialize the maze and player
+	: maze(mazeWidth, mazeHeight), playerPosition(1.0f, 0.0f, 1.0f), playerSpeed(2.0f), // Initialize the maze and player
+	cameraPosition(0.0f, 5.0f, 10.0f),  // Initial camera position
+	cameraTarget(playerPosition),       // Camera looks at the player
+	cameraUp(0.0f, 1.0f, 0.0f),         // Up vector
+	cameraYaw(-90.0f),                  // Initial yaw
+	cameraPitch(0.0f),                  // Initial pitch
+	cameraSpeed(5.0f)                   // Camera speed 
 {
 	// Create the SFML window with OpenGL context
 	window.create(sf::VideoMode(800, 600), "3D Maze Game", sf::Style::Default, settings);
@@ -114,6 +120,10 @@ Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
 	glMatrixMode(GL_MODELVIEW);
 
 	game_objects.push_back(new GameObject(gpp::TYPE::PLAYER)); // Correctly add the player object to the vector
+
+	// Initialize the view and projection matrices
+	viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
+	projectionMatrix = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
 }
 
 static void drawCube(float size) {
@@ -207,31 +217,119 @@ void Game::handleInput(float deltaTime) {
 		// Collision occurred, revert position
 		playerPosition = previousPosition;
 	}
+
+	//processing camera input
+	float cameraSpeed = 5.0f * deltaTime;
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+		cameraPosition += cameraSpeed * deltaTime * cameraTarget;
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+		cameraPosition -= cameraSpeed * deltaTime * cameraTarget;
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+		cameraPosition -= glm::normalize(glm::cross(cameraTarget, cameraUp)) * cameraSpeed * deltaTime;
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+		cameraPosition += glm::normalize(glm::cross(cameraTarget, cameraUp)) * cameraSpeed * deltaTime;
+	}
+
+	// Handle camera rotation (Mouse movement)
+	sf::Vector2i mouseDelta = sf::Mouse::getPosition(window) - sf::Vector2i(window.getSize().x / 2, window.getSize().y / 2);
+	sf::Mouse::setPosition(sf::Vector2i(window.getSize().x / 2, window.getSize().y / 2), window);
+
+	float sensitivity = 0.1f;
+	cameraYaw += mouseDelta.x * sensitivity;
+	cameraPitch -= mouseDelta.y * sensitivity;
+
+	// Constrain the pitch to avoid gimbal lock
+	if (cameraPitch > 89.0f)
+		cameraPitch = 89.0f;
+	if (cameraPitch < -89.0f)
+		cameraPitch = -89.0f;
+
+	// Update the camera direction based on yaw and pitch
+	glm::vec3 front;
+	front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+	front.y = sin(glm::radians(cameraPitch));
+	front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+	cameraTarget = glm::normalize(front);
+
+	// Make the camera follow the player
+	cameraPosition.x = playerPosition.x - 10.0f * cos(glm::radians(cameraYaw));
+	cameraPosition.z = playerPosition.z - 10.0f * sin(glm::radians(cameraYaw));
+	cameraPosition.y = playerPosition.y + 5.0f;
+
+	// Update the view matrix
+	viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
 }
 
 void Game::update(float deltaTime)
 {
 	handleInput(deltaTime);
 	updateMVPMatrix(); // Update the MVP matrix for all game objects
+	cameraTarget = playerPosition;// Update the camera to follow the player
+	float radius = 10.0f;
+	cameraPosition.x = playerPosition.x + radius * sin(angle);
+	cameraPosition.z = playerPosition.z + radius * cos(angle);
 }
 
-void Game::renderMaze() {
+void Game::renderMaze() 
+{
 	const auto& grid = maze.getMaze();
 	float size = 1.0f;  // Size of each cell
+	float height = 1.0f;  // Height of each wall
 
 	glColor3f(1.0f, 1.0f, 1.0f);  // Set color to white for the walls
 
-	for (std::size_t x = 0; x < grid.size(); ++x) {
-		for (std::size_t y = 0; y < grid[x].size(); ++y) {
-			if (grid[x][y] == 1) {
+	for (std::size_t x = 0; x < grid.size(); ++x) 
+	{
+		for (std::size_t y = 0; y < grid[x].size(); ++y) 
+		{
+			if (grid[x][y] == 1) 
+			{
 				glPushMatrix();
 				glTranslatef(x * size, 0.0f, y * size);
+
+				// Draw each face of the cube
 				glBegin(GL_QUADS);
-				// Draw the walls of the maze cell
+
+				// Front face
 				glVertex3f(0.0f, 0.0f, 0.0f);
 				glVertex3f(size, 0.0f, 0.0f);
-				glVertex3f(size, size, 0.0f);
-				glVertex3f(0.0f, size, 0.0f);
+				glVertex3f(size, height, 0.0f);
+				glVertex3f(0.0f, height, 0.0f);
+
+				// Back face
+				glVertex3f(0.0f, 0.0f, size);
+				glVertex3f(size, 0.0f, size);
+				glVertex3f(size, height, size);
+				glVertex3f(0.0f, height, size);
+
+				// Left face
+				glVertex3f(0.0f, 0.0f, 0.0f);
+				glVertex3f(0.0f, 0.0f, size);
+				glVertex3f(0.0f, height, size);
+				glVertex3f(0.0f, height, 0.0f);
+
+				// Right face
+				glVertex3f(size, 0.0f, 0.0f);
+				glVertex3f(size, 0.0f, size);
+				glVertex3f(size, height, size);
+				glVertex3f(size, height, 0.0f);
+
+				// Top face
+				glVertex3f(0.0f, height, 0.0f);
+				glVertex3f(size, height, 0.0f);
+				glVertex3f(size, height, size);
+				glVertex3f(0.0f, height, size);
+
+				// Bottom face
+				glVertex3f(0.0f, 0.0f, 0.0f);
+				glVertex3f(size, 0.0f, 0.0f);
+				glVertex3f(size, 0.0f, size);
+				glVertex3f(0.0f, 0.0f, size);
+
 				glEnd();
 				glPopMatrix();
 			}
@@ -273,6 +371,11 @@ void Game::initialise()
 
 	game_objects.push_back(new GameObject(gpp::TYPE::PLAYER));
 	game_objects[0]->setPosition(glm::vec3(0.0001f, 0.0f, 0.0f));
+
+	//camera
+	cameraPosition = glm::vec3(0.0f, 5.0f, 10.0f); // Initial camera position
+	cameraTarget = playerPosition; // Initial target is the player's position
+	cameraUp = glm::vec3(0.0f, 1.0f, 0.0f); // Up vector is along the Y-axis
 
 	DEBUG_MSG("\n******** Init GameObjects ENDS ********\n");
 
@@ -696,12 +799,20 @@ void Game::render()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
 
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
 	// Camera setup
-	gluLookAt(
-		playerPosition.x, playerPosition.y + 2.0f, playerPosition.z + 5.0f, // Camera position
-		playerPosition.x, playerPosition.y, playerPosition.z,               // Look at player
-		0.0f, 1.0f, 0.0f                                                   // Up vector
-	);
+	gluLookAt(cameraPosition.x, cameraPosition.y, cameraPosition.z,
+		cameraTarget.x, cameraTarget.y, cameraTarget.z,
+		cameraUp.x, cameraUp.y, cameraUp.z);
+
+	glm::mat4 mvp = projectionMatrix * viewMatrix * modelMatrix;
+
+	// Set the view matrix
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+	glm::mat4 view = viewMatrix;
+
 
 	renderMaze();
 	renderPlayer();

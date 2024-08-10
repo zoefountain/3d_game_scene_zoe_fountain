@@ -75,6 +75,16 @@ private:
     void renderMaze();
     void renderPlayer();
 
+    //setting up camera
+    glm::mat4 viewMatrix; // Camera view matrix
+    glm::mat4 projectionMatrix; // Projection matrix
+    glm::vec3 cameraPosition;
+    glm::vec3 cameraTarget;
+    glm::vec3 cameraUp;
+    float cameraYaw;   // Yaw angle (rotation around the Y-axis)
+    float cameraPitch; // Pitch angle (rotation around the X-axis)
+    float cameraSpeed; // Movement speed
+
     /**
      * @brief Method to initialize the game.
      *
