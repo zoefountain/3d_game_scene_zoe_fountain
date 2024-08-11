@@ -91,6 +91,7 @@ namespace gpp
 		 * @return The model matrix of the game object as a mat4 matrix.
 		 */
 		glm::mat4 getModelMatrix() const;
+	
 
 		/**
 		 * @brief Setter method for setting the model of the game object.

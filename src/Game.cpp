@@ -268,8 +268,12 @@ void Game::update(float deltaTime)
 {
 	handleInput(deltaTime);
 	updateMVPMatrix(); // Update the MVP matrix for all game objects
+
+	static float angle = 0.0f;
+	float radius = 5.0f;  // Distance from the player
+	angle += 1.0f * deltaTime;  // Adjust the speed of rotation by changing 1.0f
+
 	cameraTarget = playerPosition;// Update the camera to follow the player
-	float radius = 10.0f;
 	cameraPosition.x = playerPosition.x + radius * sin(angle);
 	cameraPosition.z = playerPosition.z + radius * cos(angle);
 }
@@ -807,6 +811,7 @@ void Game::render()
 		cameraTarget.x, cameraTarget.y, cameraTarget.z,
 		cameraUp.x, cameraUp.y, cameraUp.z);
 
+	glm::mat4 modelMatrix = game_objects[0]->getModelMatrix();  // Assume each object has a model matrix
 	glm::mat4 mvp = projectionMatrix * viewMatrix * modelMatrix;
 
 	// Set the view matrix
