@@ -85,6 +85,10 @@ private:
     float cameraPitch; // Pitch angle (rotation around the X-axis)
     float cameraSpeed; // Movement speed
 
+    bool firstMouse = true;
+    float lastX;
+    float lastY;
+    bool mouseLocked = true; 
     /**
      * @brief Method to initialize the game.
      *

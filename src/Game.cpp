@@ -218,50 +218,68 @@ void Game::handleInput(float deltaTime) {
 		playerPosition = previousPosition;
 	}
 
-	//processing camera input
-	float cameraSpeed = 5.0f * deltaTime;
-
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-		cameraPosition += cameraSpeed * deltaTime * cameraTarget;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-		cameraPosition -= cameraSpeed * deltaTime * cameraTarget;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-		cameraPosition -= glm::normalize(glm::cross(cameraTarget, cameraUp)) * cameraSpeed * deltaTime;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-		cameraPosition += glm::normalize(glm::cross(cameraTarget, cameraUp)) * cameraSpeed * deltaTime;
+	//mouse lock toggle
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+	{
+		mouseLocked = !mouseLocked;
+		sf::Mouse::setPosition(sf::Vector2i(window.getSize().x / 2, window.getSize().y / 2), window);
+		window.setMouseCursorVisible(!mouseLocked);
+		firstMouse = true;
 	}
 
-	// Handle camera rotation (Mouse movement)
-	sf::Vector2i mouseDelta = sf::Mouse::getPosition(window) - sf::Vector2i(window.getSize().x / 2, window.getSize().y / 2);
-	sf::Mouse::setPosition(sf::Vector2i(window.getSize().x / 2, window.getSize().y / 2), window);
+	if (mouseLocked) 
+	{
+		// Get the current mouse position
+		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 
-	float sensitivity = 0.1f;
-	cameraYaw += mouseDelta.x * sensitivity;
-	cameraPitch -= mouseDelta.y * sensitivity;
+		// Calculate the offset from the last position
+		float xOffset = mousePos.x - lastX;
+		float yOffset = lastY - mousePos.y; // Inverted since y-coordinates go from bottom to top
 
-	// Constrain the pitch to avoid gimbal lock
-	if (cameraPitch > 89.0f)
-		cameraPitch = 89.0f;
-	if (cameraPitch < -89.0f)
-		cameraPitch = -89.0f;
+		// Update the last mouse position
+		lastX = mousePos.x;
+		lastY = mousePos.y;
 
-	// Update the camera direction based on yaw and pitch
-	glm::vec3 front;
-	front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
-	front.y = sin(glm::radians(cameraPitch));
-	front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
-	cameraTarget = glm::normalize(front);
+		float sensitivity = 0.1f;
+		xOffset *= sensitivity;
+		yOffset *= sensitivity;
 
-	// Make the camera follow the player
-	cameraPosition.x = playerPosition.x - 10.0f * cos(glm::radians(cameraYaw));
-	cameraPosition.z = playerPosition.z - 10.0f * sin(glm::radians(cameraYaw));
-	cameraPosition.y = playerPosition.y + 5.0f;
+		// Update the camera's yaw and pitch based on mouse movement
+		cameraYaw += xOffset;
+		cameraPitch += yOffset;
+		//debugging
+		std::cout << "Mouse Offset: " << xOffset << ", " << yOffset << std::endl;
+		std::cout << "Camera Yaw: " << cameraYaw << ", Pitch: " << cameraPitch << std::endl;
 
-	// Update the view matrix
-	viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
+		// Constrain the pitch to avoid gimbal lock
+		if (cameraPitch > 89.0f) {
+			cameraPitch = 89.0f;
+		}
+		if (cameraPitch < -89.0f) {
+			cameraPitch = -89.0f;
+		}
+
+		// Calculate the new camera direction
+		glm::vec3 front;
+		front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+		front.y = sin(glm::radians(cameraPitch));
+		front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+		cameraTarget = glm::normalize(front);
+
+		// Update the camera's position to orbit around the player
+		float radius = 10.0f; // Distance from the player to the camera
+		cameraPosition.x = playerPosition.x - radius * cameraTarget.x;
+		cameraPosition.y = playerPosition.y + 5.0f; // Slightly above the player
+		cameraPosition.z = playerPosition.z - radius * cameraTarget.z;
+
+		// Update the view matrix to look at the player
+		viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
+
+	}
+	else 
+	{
+		// Allow free mouse movement
+	}
 }
 
 void Game::update(float deltaTime)
@@ -270,8 +288,8 @@ void Game::update(float deltaTime)
 	updateMVPMatrix(); // Update the MVP matrix for all game objects
 
 	static float angle = 0.0f;
-	float radius = 5.0f;  // Distance from the player
 	angle += 1.0f * deltaTime;  // Adjust the speed of rotation by changing 1.0f
+	float radius = 10.0f; // Distance from the player
 
 	cameraTarget = playerPosition;// Update the camera to follow the player
 	cameraPosition.x = playerPosition.x + radius * sin(angle);
@@ -627,6 +645,9 @@ void Game::initialise()
 				vec3(0.0f, 0.0f, 0.0f),	 // Camera looking at origin
 				vec3(0.0f, 1.0f, 0.0f)	 // 0.0f, 1.0f, 0.0f Look Down and 0.0f, -1.0f, 0.0f Look Up
 			);
+
+			lastX = window.getSize().x / 2.0f;
+			lastY = window.getSize().y / 2.0f;
 
 			DEBUG_MSG("\n******** MVP ENDS ********\n");
 
