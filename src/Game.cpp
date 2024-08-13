@@ -11,6 +11,8 @@
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 /* STB_IMAGE_IMPLEMENTATION should be defined only once */
 #define STB_IMAGE_IMPLEMENTATION // Define STB_IMAGE_IMPLEMENTATION only once
@@ -196,7 +198,8 @@ void Game::updateMVPMatrix()
 
 void Game::handleInput(float deltaTime) {
 	glm::vec3 previousPosition = playerPosition; // Save previous position for collision detection
-
+	
+	//player movement controls
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 		playerPosition.z -= playerSpeed * deltaTime;
 	}
@@ -229,8 +232,18 @@ void Game::handleInput(float deltaTime) {
 
 	if (mouseLocked) 
 	{
+		// Calculate the center of the window
+		sf::Vector2i center(window.getSize().x / 2, window.getSize().y / 2);
+
 		// Get the current mouse position
 		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+
+		if (firstMouse) 
+		{
+			lastX = mousePos.x;
+			lastY = mousePos.y;
+			firstMouse = false;
+		}
 
 		// Calculate the offset from the last position
 		float xOffset = mousePos.x - lastX;
@@ -240,7 +253,8 @@ void Game::handleInput(float deltaTime) {
 		lastX = mousePos.x;
 		lastY = mousePos.y;
 
-		float sensitivity = 0.1f;
+		// Sensitivity scaling
+		float sensitivity = 1.5f;
 		xOffset *= sensitivity;
 		yOffset *= sensitivity;
 
@@ -248,14 +262,18 @@ void Game::handleInput(float deltaTime) {
 		cameraYaw += xOffset;
 		cameraPitch += yOffset;
 		//debugging
-		std::cout << "Mouse Offset: " << xOffset << ", " << yOffset << std::endl;
-		std::cout << "Camera Yaw: " << cameraYaw << ", Pitch: " << cameraPitch << std::endl;
+		std::cout << "Yaw: " << cameraYaw << " Pitch: " << cameraPitch << std::endl;
+		std::cout << "Mouse Offset X: " << xOffset << " Y: " << yOffset << std::endl;
+		std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
+		std::cout << "Camera Target: (" << cameraTarget.x << ", " << cameraTarget.y << ", " << cameraTarget.z << ")" << std::endl;
 
 		// Constrain the pitch to avoid gimbal lock
-		if (cameraPitch > 89.0f) {
+		if (cameraPitch > 89.0f) 
+		{
 			cameraPitch = 89.0f;
 		}
-		if (cameraPitch < -89.0f) {
+		if (cameraPitch < -89.0f) 
+		{
 			cameraPitch = -89.0f;
 		}
 
@@ -266,13 +284,15 @@ void Game::handleInput(float deltaTime) {
 		front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
 		cameraTarget = glm::normalize(front);
 
-		// Update the camera's position to orbit around the player
-		float radius = 10.0f; // Distance from the player to the camera
-		cameraPosition.x = playerPosition.x - radius * cameraTarget.x;
-		cameraPosition.y = playerPosition.y + 5.0f; // Slightly above the player
-		cameraPosition.z = playerPosition.z - radius * cameraTarget.z;
+		// Set mouse back to center
+		sf::Mouse::setPosition(center, window);
 
-		// Update the view matrix to look at the player
+		// Update camera position to follow the player with some offset
+		cameraPosition.x = playerPosition.x - 10.0f * cos(glm::radians(cameraYaw));
+		cameraPosition.z = playerPosition.z - 10.0f * sin(glm::radians(cameraYaw));
+		cameraPosition.y = playerPosition.y + 5.0f;
+
+		// Update view matrix
 		viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
 
 	}
@@ -398,6 +418,8 @@ void Game::initialise()
 	cameraPosition = glm::vec3(0.0f, 5.0f, 10.0f); // Initial camera position
 	cameraTarget = playerPosition; // Initial target is the player's position
 	cameraUp = glm::vec3(0.0f, 1.0f, 0.0f); // Up vector is along the Y-axis
+
+	projectionMatrix = glm::perspective(glm::radians(45.0f), (float)window.getSize().x / (float)window.getSize().y, 0.1f, 100.0f);
 
 	DEBUG_MSG("\n******** Init GameObjects ENDS ********\n");
 
@@ -834,6 +856,18 @@ void Game::render()
 
 	glm::mat4 modelMatrix = game_objects[0]->getModelMatrix();  // Assume each object has a model matrix
 	glm::mat4 mvp = projectionMatrix * viewMatrix * modelMatrix;
+	for (auto* object : game_objects) {
+		glPushMatrix();
+		glMultMatrixf(glm::value_ptr(object->getModelMatrix()));
+
+		drawCube(1.0f);
+
+		glPopMatrix();
+	}
+
+	//debugging
+	std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
+	std::cout << "Camera Target: (" << cameraTarget.x << ", " << cameraTarget.y << ", " << cameraTarget.z << ")" << std::endl;
 
 	// Set the view matrix
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
@@ -842,14 +876,16 @@ void Game::render()
 
 	renderMaze();
 	renderPlayer();
+	
 
 	// Render each game object
-	for (auto& gameObject : game_objects) {
-		if (gameObject != nullptr) {
-			glBufferSubData(GL_ARRAY_BUFFER, 0 * VERTICES * sizeof(GLfloat), 3 * VERTICES * sizeof(GLfloat), gameObject->getVertex());
-			glUniformMatrix4fv(mvpID, 1, GL_FALSE, &(gameObject->getMVPMatrix())[0][0]);
-			glDrawArrays(GL_TRIANGLES, 0, VERTICES);
-		}
+	for (auto* object : game_objects) {
+		glPushMatrix();
+		glMultMatrixf(glm::value_ptr(object->getModelMatrix()));
+
+		drawCube(object->getSize()); 
+
+		glPopMatrix();
 	}
 
 	window.display();

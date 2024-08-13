@@ -50,6 +50,7 @@ namespace gpp
 
 		glm::mat4 modelMatrix;
 		glm::mat4 mvpMatrix;
+		float size;
 
 	public:
 		/**
@@ -60,9 +61,6 @@ namespace gpp
 		 * The position of the GameObject is set to the origin (0, 0, 0).
 		 */
 		GameObject(TYPE type);
-
-		
-		
 
 		/**
 		 * @brief Destructor for the GameObject class.
@@ -92,6 +90,7 @@ namespace gpp
 		 */
 		glm::mat4 getModelMatrix() const;
 	
+		float getSize() const;
 
 		/**
 		 * @brief Setter method for setting the model of the game object.

@@ -71,7 +71,11 @@ void GameObject::setPosition(vec3 position) { this->position = position; }
  */
 glm::mat4 GameObject::getModelMatrix() const 
 {
-    return this->model;
+    return glm::mat4(1.0f);
+}
+
+float GameObject::getSize() const {
+    return size;  // Return the size of the object
 }
 
 /**
