@@ -86,9 +86,13 @@ private:
     float cameraSpeed; // Movement speed
 
     bool firstMouse = true;
+    sf::Vector2i lastMousePos;
     float lastX;
     float lastY;
     bool mouseLocked = true; 
+
+    GLuint VBO, VAO;
+    void setupVBO();
     /**
      * @brief Method to initialize the game.
      *

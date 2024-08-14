@@ -8,8 +8,6 @@ Maze::Maze(int width, int height)
 void Maze::generateMaze(int width, int height)
 {
     mazeGrid.resize(width, std::vector<int>(height, 0));
-    // Generate the maze, set walls and paths here
-    // For simplicity, let's set some walls manually for now
     for (int x = 0; x < width; ++x) 
     {
         for (int y = 0; y < height; ++y) 

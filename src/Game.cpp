@@ -9,6 +9,7 @@
 #include <./include/stb_image.h> // Include single file header for loading images
 #include <./include/Maze.h>
 #include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <glm/glm.hpp>
@@ -59,6 +60,12 @@ GLint positionID, // Position ID
 	mvpID;		  // Model View Projection ID
 
 GLenum error; // OpenGL Error Code
+
+glewExperimental = GL_TRUE;
+if (glewInit() != GLEW_OK) {
+	std::cerr << "Failed to initialize GLEW" << std::endl;
+	return -1;
+}
 
 // Filename for texture
 const string filename = "./assets/textures/grid.tga";
@@ -237,24 +244,19 @@ void Game::handleInput(float deltaTime) {
 
 		// Get the current mouse position
 		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-
 		if (firstMouse) 
 		{
-			lastX = mousePos.x;
-			lastY = mousePos.y;
+			lastMousePos = mousePos;
 			firstMouse = false;
 		}
 
 		// Calculate the offset from the last position
-		float xOffset = mousePos.x - lastX;
-		float yOffset = lastY - mousePos.y; // Inverted since y-coordinates go from bottom to top
-
-		// Update the last mouse position
-		lastX = mousePos.x;
-		lastY = mousePos.y;
+		float xOffset = mousePos.x - lastMousePos.x;
+		float yOffset = lastMousePos.y - mousePos.y;  // Reversed since y-coordinates go from top to bottom
+		lastMousePos = mousePos;
 
 		// Sensitivity scaling
-		float sensitivity = 1.5f;
+		float sensitivity = 0.1f;
 		xOffset *= sensitivity;
 		yOffset *= sensitivity;
 
@@ -277,23 +279,20 @@ void Game::handleInput(float deltaTime) {
 			cameraPitch = -89.0f;
 		}
 
-		// Calculate the new camera direction
-		glm::vec3 front;
-		front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
-		front.y = sin(glm::radians(cameraPitch));
-		front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
-		cameraTarget = glm::normalize(front);
+		// Update camera position based on yaw, pitch, and distance from player
+		float distance = 10.0f; // Distance from the player
+		cameraPosition.x = playerPosition.x + distance * cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+		cameraPosition.y = playerPosition.y + distance * sin(glm::radians(cameraPitch));
+		cameraPosition.z = playerPosition.z + distance * sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
 
-		// Set mouse back to center
-		sf::Mouse::setPosition(center, window);
+		// Update the camera target to always look at the player
+		cameraTarget = glm::normalize(playerPosition - cameraPosition);
 
-		// Update camera position to follow the player with some offset
-		cameraPosition.x = playerPosition.x - 10.0f * cos(glm::radians(cameraYaw));
-		cameraPosition.z = playerPosition.z - 10.0f * sin(glm::radians(cameraYaw));
-		cameraPosition.y = playerPosition.y + 5.0f;
-
-		// Update view matrix
+		// Update the view matrix
 		viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
+
+		// Lock the mouse to the center of the window
+		sf::Mouse::setPosition(center, window);
 
 	}
 	else 
@@ -385,6 +384,41 @@ void Game::renderPlayer() {
 	glColor3f(0.0f, 1.0f, 0.0f); // Set player color to green
 	drawCube(0.5f); // Render player as a cube
 	glPopMatrix();
+}
+
+void Game::setupVBO()
+{
+	GLfloat vertices[] = {
+		// positions        // colors
+		-0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  // Bottom-left
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  // Bottom-right
+		 0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  // Top-right
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f   // Top-left 
+	};
+
+	GLuint indices[] = {
+		0, 1, 2,  // First Triangle
+		2, 3, 0   // Second Triangle
+	};
+
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	// Set the vertex attribute pointers
+	// Position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// Color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
 
 /**
@@ -778,8 +812,17 @@ void Game::render()
 	DEBUG_MSG("Render Loop...");
 #endif
 
-	// Clear the color buffer and depth buffer
+	// Clear the screen
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Bind the VAO (it encapsulates the VBO and attribute settings)
+	glBindVertexArray(VAO);
+
+	// Draw the object
+	glDrawArrays(GL_TRIANGLES, 0, 6);  // Change this depending on your vertex layout
+
+	// Unbind the VAO
+	glBindVertexArray(0);
 
 	// Save current OpenGL render states
 	// https://www.sfml-dev.org/documentation/2.0/classsf_1_1RenderTarget.php#a8d1998464ccc54e789aaf990242b47f7
@@ -944,7 +987,8 @@ void Game::unload()
 	glDeleteProgram(progID);
 
 	// Delete the vertex buffer object
-	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &VBO);
+	glDeleteVertexArrays(1, &VAO);
 
 	// Delete the vertex index buffer object
 	glDeleteBuffers(1, &vib);
