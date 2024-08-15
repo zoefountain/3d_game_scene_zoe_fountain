@@ -18,20 +18,20 @@ ifeq ($(OS),Windows_NT)
 	# Make sure your Env Variable is set to SFML
 	# Tested with SFML 2.5.1 GCC 7.3.0 MinGW (SEH) - 64-bit
 	# Convert Windows directory path to UNIX Path
-	SDK			:=${MYSYS2}
-	SDK_PATH	:=$(subst \,/,$(subst C:\,/c/,$(SDK)))
-	INCLUDES	:= -I${SDK_PATH}/include -I.
-	LIBS		:= -L${SDK_PATH}/lib
-	CXXFLAGS 	:= -std=c++11 -Wall -Wextra -g ${INCLUDES}
-	LIBRARIES = -l libsfml-graphics -l libsfml-window -l libsfml-system -l libglew32 -l opengl32 -lglu32
-	TARGET		:= ${BUILD_DIR}/sampleapp.exe
+	SDK         := ${MYSYS2}
+    SDK_PATH    := $(subst \,/,$(subst C:\,/c/,$(SDK)))
+    INCLUDES    := -I${SDK_PATH}/include -I${SDK_PATH}/include/GLFW -I.
+    LIBS        := -L${SDK_PATH}/lib
+    CXXFLAGS    := -std=c++11 -Wall -Wextra -g ${INCLUDES}
+    LIBRARIES   := -lsfml-graphics -lsfml-window -lsfml-system -lglew32 -lopengl32 -lglu32 -lglfw3
+    TARGET      := ${BUILD_DIR}/sampleapp.exe
 else
-    os := $(shell uname -s)
-	INCLUDES	:= -I.
-	LIBS		:= -L.
-	CXXFLAGS 	:= -std=c++11 -Wall -Wextra -g ${INCLUDES}
-	LIBRARIES	:= -l sfml-graphics -l sfml-window -l sfml-system -l GL -l GLEW
-	TARGET		:= ${BUILD_DIR}/sampleapp.bin
+    os          := $(shell uname -s)
+    INCLUDES    := -I.
+    LIBS        := -L.
+    CXXFLAGS    := -std=c++11 -Wall -Wextra -g ${INCLUDES}
+    LIBRARIES   := -lsfml-graphics -lsfml-window -lsfml-system -lGL -lGLEW -lglfw
+    TARGET      := ${BUILD_DIR}/sampleapp.bin
 endif
 
 SRC				:=	$(wildcard ${SRC_DIR}/*.cpp) # List the CPP src files
