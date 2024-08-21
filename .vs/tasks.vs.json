@@ -1,0 +1,20 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskLabel": "task-3d_game_scene_zoe_fountain",
+      "appliesTo": "/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "task-3d_game_scene_zoe_fountain",
+      "appliesTo": "/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "task-3d_game_scene_zoe_fountain",
+      "appliesTo": "/",
+      "type": "launch"
+    }
+  ]
+}

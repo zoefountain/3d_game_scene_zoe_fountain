@@ -20,9 +20,9 @@ ifeq ($(OS),Windows_NT)
 	# Convert Windows directory path to UNIX Path
 	SDK         := ${MYSYS2}
     SDK_PATH    := $(subst \,/,$(subst C:\,/c/,$(SDK)))
-    INCLUDES    := -I${SDK_PATH}/include -I${SDK_PATH}/include/GLFW -I.
-    LIBS        := -L${SDK_PATH}/lib
-    CXXFLAGS    := -std=c++11 -Wall -Wextra -g ${INCLUDES}
+    INCLUDES    := -I/mingw64/include -I. -I${SDK_PATH}/include -I. -I/mingw64/include/GLFW  
+	LIBS        := -L${SDK_PATH}/lib -L/mingw64/lib
+    CXXFLAGS	:= -std=c++11 -Wall -Wextra -g ${INCLUDES}
     LIBRARIES   := -lsfml-graphics -lsfml-window -lsfml-system -lglew32 -lopengl32 -lglu32 -lglfw3
     TARGET      := ${BUILD_DIR}/sampleapp.exe
 else
