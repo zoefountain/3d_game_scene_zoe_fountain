@@ -61,11 +61,6 @@ GLint positionID, // Position ID
 
 GLenum error; // OpenGL Error Code
 
-glewExperimental = GL_TRUE;
-if (glewInit() != GLEW_OK) {
-	std::cerr << "Failed to initialize GLEW" << std::endl;
-	return -1;
-}
 
 // Filename for texture
 const string filename = "./assets/textures/grid.tga";
@@ -111,12 +106,12 @@ Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
 	window.create(sf::VideoMode(800, 600), "3D Maze Game", sf::Style::Default, settings);
 	window.setVerticalSyncEnabled(true);
 
-	// Initialize GLEW
+	//initialize GLEW
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK) {
 		std::cerr << "Failed to initialize GLEW" << std::endl;
-		exit(EXIT_FAILURE);
 	}
+
 
 	// Set up OpenGL settings
 	glEnable(GL_DEPTH_TEST);
