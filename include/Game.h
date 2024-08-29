@@ -93,6 +93,9 @@ private:
 
     GLuint VBO, VAO;
     void setupVBO();
+
+    void initPointCubes();  // Add declaration for initializing point cubes
+
     /**
      * @brief Method to initialize the game.
      *

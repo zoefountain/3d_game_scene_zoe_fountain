@@ -14,6 +14,7 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <include/pointCube.h>
 
 /* STB_IMAGE_IMPLEMENTATION should be defined only once */
 #define STB_IMAGE_IMPLEMENTATION // Define STB_IMAGE_IMPLEMENTATION only once
@@ -88,6 +89,10 @@ Font font; // Game font
 
 float x_offset, y_offset, z_offset; // offset on screen (Vertex Shader)
 
+int score = 0;  // Initialize a score variable
+
+std::vector<PointCube> pointCubes;  // Store all point cubes
+
 /**
  * @brief Constructs a new Game object with the specified context settings.
  *
@@ -128,6 +133,8 @@ Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
 	// Initialize the view and projection matrices
 	viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
 	projectionMatrix = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+
+	initPointCubes(); // Initialize the point cubes
 }
 
 static void drawCube(float size) {
@@ -172,6 +179,14 @@ static void drawCube(float size) {
 	glVertex3f(-halfSize, -halfSize, halfSize);
 
 	glEnd();
+}
+
+void Game::initPointCubes() {
+	// Add some point cubes to the game
+	pointCubes.push_back(PointCube(glm::vec3(2.0f, 0.5f, 2.0f), 0.5f));
+	pointCubes.push_back(PointCube(glm::vec3(-3.0f, 0.5f, -1.0f), 0.5f));
+	pointCubes.push_back(PointCube(glm::vec3(0.0f, 0.5f, -2.0f), 0.5f));
+	// Add more cubes as needed
 }
 
 /**
@@ -308,6 +323,13 @@ void Game::update(float deltaTime)
 	cameraTarget = playerPosition;// Update the camera to follow the player
 	cameraPosition.x = playerPosition.x + radius * sin(angle);
 	cameraPosition.z = playerPosition.z + radius * cos(angle);
+
+	for (auto& cube : pointCubes) {
+		if (!cube.collected && cube.checkCollision(playerPosition, 0.5f)) { // Assuming playerSize is 0.5f
+			score += 10; // Increase score
+			std::cout << "Score: " << score << std::endl;
+		}
+	}
 }
 
 void Game::renderMaze() 
@@ -835,6 +857,11 @@ void Game::render()
 	text.setPosition(50.f, 20.f);
 
 	window.draw(text);
+
+	for (const auto& cube : pointCubes) {
+		cube.render();
+	}
+
 
 	// Restore OpenGL render states
 	// https://www.sfml-dev.org/documentation/2.0/classsf_1_1RenderTarget.php#a8d1998464ccc54e789aaf990242b47f7
