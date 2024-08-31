@@ -1,38 +1,20 @@
-#ifndef POINTCUBE_H
-#define POINTCUBE_H
+#ifndef POINT_CUBE_H
+#define POINT_CUBE_H
 
-#include <glm/glm.hpp>
 #include <GL/glew.h>
-#include <GL/glut.h> // or <GL/freeglut.h> depending on your setup
+#include <glm/glm.hpp>
 
 class PointCube {
 public:
-    glm::vec3 position;
-    float size;
-    bool collected;
+    glm::vec3 position; // Position of the cube
+    float size;         // Size of the cube
+    bool collected;     // Whether the cube has been collected
+    PointCube() : collected(false) {}
 
-    PointCube(glm::vec3 pos, float s) : position(pos), size(s), collected(false) {}
-
-    void render() {
-        if (collected) return; // Don't render if collected
-
-        // Render the cube
-        glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glScalef(size, size, size);
-        glutSolidCube(1.0f);
-        glPopMatrix();
-    }
-
-    bool checkCollision(const glm::vec3& playerPosition, float playerSize) {
-        // Simple collision detection based on distance
-        float distance = glm::length(playerPosition - position);
-        if (distance < (playerSize + size) / 2.0f) {
-            collected = true;
-            return true;
-        }
-        return false;
-    }
+    PointCube(glm::vec3 pos, float s);
+    void draw(GLuint shaderProgram, GLuint VAO);
+    bool checkCollision(const glm::vec3& playerPos, float playerSize);
+    void render() const;
 };
 
 #endif

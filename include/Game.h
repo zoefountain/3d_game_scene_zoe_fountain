@@ -70,6 +70,7 @@ private:
     Maze maze;
     glm::vec3 playerPosition;
     float playerSpeed;
+    float playerSize;
     void handleInput(float deltaTime);
     void update(float deltaTime);
     void renderMaze();
@@ -94,7 +95,7 @@ private:
     GLuint VBO, VAO;
     void setupVBO();
 
-    void initPointCubes();  // Add declaration for initializing point cubes
+    int points;
 
     /**
      * @brief Method to initialize the game.

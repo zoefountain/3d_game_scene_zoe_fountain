@@ -14,7 +14,7 @@
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <include/pointCube.h>
+#include <./include/pointCube.h>
 
 /* STB_IMAGE_IMPLEMENTATION should be defined only once */
 #define STB_IMAGE_IMPLEMENTATION // Define STB_IMAGE_IMPLEMENTATION only once
@@ -105,7 +105,8 @@ Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
 	cameraUp(0.0f, 1.0f, 0.0f),         // Up vector
 	cameraYaw(-90.0f),                  // Initial yaw
 	cameraPitch(0.0f),                  // Initial pitch
-	cameraSpeed(5.0f)                   // Camera speed 
+	cameraSpeed(5.0f),                   // Camera speed 
+	points(0) // Initialize points to 0
 {
 	// Create the SFML window with OpenGL context
 	window.create(sf::VideoMode(800, 600), "3D Maze Game", sf::Style::Default, settings);
@@ -134,7 +135,9 @@ Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
 	viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
 	projectionMatrix = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
 
-	initPointCubes(); // Initialize the point cubes
+	pointCubes.push_back(PointCube(glm::vec3(2.0f, 0.5f, 2.0f), 0.5f));
+	pointCubes.push_back(PointCube(glm::vec3(-2.0f, 0.5f, -3.0f), 0.5f));
+
 }
 
 static void drawCube(float size) {
@@ -179,14 +182,6 @@ static void drawCube(float size) {
 	glVertex3f(-halfSize, -halfSize, halfSize);
 
 	glEnd();
-}
-
-void Game::initPointCubes() {
-	// Add some point cubes to the game
-	pointCubes.push_back(PointCube(glm::vec3(2.0f, 0.5f, 2.0f), 0.5f));
-	pointCubes.push_back(PointCube(glm::vec3(-3.0f, 0.5f, -1.0f), 0.5f));
-	pointCubes.push_back(PointCube(glm::vec3(0.0f, 0.5f, -2.0f), 0.5f));
-	// Add more cubes as needed
 }
 
 /**
@@ -237,6 +232,17 @@ void Game::handleInput(float deltaTime) {
 		// Collision occurred, revert position
 		playerPosition = previousPosition;
 	}
+
+	// Check for collisions and update points
+	for (PointCube& cube : pointCubes) 
+	{
+		if (cube.checkCollision(playerPosition, playerSize)) 
+		{
+			points += 10; // Increment points
+			cube.collected = true; // Mark cube as collected
+		}
+	}
+
 
 	//mouse lock toggle
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
@@ -310,6 +316,7 @@ void Game::handleInput(float deltaTime) {
 		// Allow free mouse movement
 	}
 }
+
 
 void Game::update(float deltaTime)
 {
@@ -849,12 +856,18 @@ void Game::render()
 	int x = Mouse::getPosition(window).x;
 	int y = Mouse::getPosition(window).y;
 
-	string hud = "Heads Up Display [" + string(toString(x)) + "][" + string(toString(y)) + "]";
+	// Display points
+	sf::Font font;
+	if (!font.loadFromFile("BBrick.ttf")) {
+		// handle error
+	}
 
-	Text text(hud, font);
-
-	text.setFillColor(sf::Color(255, 255, 255, 170));
-	text.setPosition(50.f, 20.f);
+	sf::Text text;
+	text.setFont(font);
+	text.setString("Points: " + std::to_string(points));
+	text.setCharacterSize(24);
+	text.setFillColor(sf::Color::White);
+	text.setPosition(10.f, 10.f);
 
 	window.draw(text);
 
@@ -928,6 +941,10 @@ void Game::render()
 		drawCube(1.0f);
 
 		glPopMatrix();
+	}
+
+	for (PointCube& cube : pointCubes) {
+		cube.render();
 	}
 
 	//debugging
