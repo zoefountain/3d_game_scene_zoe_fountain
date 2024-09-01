@@ -135,8 +135,7 @@ Game::Game(int mazeWidth, int mazeHeight, const sf::ContextSettings& settings)
 	viewMatrix = glm::lookAt(cameraPosition, playerPosition, cameraUp);
 	projectionMatrix = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
 
-	pointCubes.push_back(PointCube(glm::vec3(2.0f, 0.5f, 2.0f), 0.5f));
-	pointCubes.push_back(PointCube(glm::vec3(-2.0f, 0.5f, -3.0f), 0.5f));
+	
 
 }
 
@@ -471,6 +470,11 @@ void Game::initialise()
 
 	game_objects.push_back(new GameObject(gpp::TYPE::PLAYER));
 	game_objects[0]->setPosition(glm::vec3(0.0001f, 0.0f, 0.0f));
+
+	pointCubes.push_back(PointCube(glm::vec3(1.0f, 0.0f, -5.0f), 0.5f));
+	pointCubes.push_back(PointCube(glm::vec3(-2.0f, 1.0f, -3.0f), 0.5f));
+	pointCubes.push_back(PointCube(glm::vec3(0.0f, -1.0f, -7.0f), 0.5f));
+	pointCubes.push_back(PointCube(glm::vec3(2.0f, 2.0f, -4.0f), 0.5f));
 
 	//camera
 	cameraPosition = glm::vec3(0.0f, 5.0f, 10.0f); // Initial camera position

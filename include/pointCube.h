@@ -3,9 +3,11 @@
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include <vector>
 
 class PointCube {
 public:
+    std::vector<PointCube> pointCubes;
     glm::vec3 position; // Position of the cube
     float size;         // Size of the cube
     bool collected;     // Whether the cube has been collected

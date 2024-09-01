@@ -25,6 +25,7 @@ const int GAME_OBJECTS	= 2;	// Total Number of GamesObjects
 #include <./include/Debug.h>      // Debugging utilities
 #include <./include/GameObject.h> // Game object class
 #include <./include/Maze.h> //includes the maze header
+#include <./include/pointCube.h>//includes pointCubes header
 
 // Using directives to avoid typing std::, sf::, and glm:: prefixes
 using namespace std; // Standard C++ namespace

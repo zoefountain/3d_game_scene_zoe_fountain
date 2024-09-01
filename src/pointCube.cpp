@@ -1,26 +1,16 @@
 #include <include/pointCube.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
+#include <ostream>
 
 PointCube::PointCube(glm::vec3 pos, float s)
     : position(pos), size(s), collected(false) {}
 
-void PointCube::draw(GLuint shaderProgram, GLuint VAO) {
-    if (collected) return;
-
-    // Set up the model matrix
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
-    model = glm::scale(model, glm::vec3(size));
-
-    // Send the model matrix to the shader
-    GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
-    // Bind the VAO and draw the cube
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+void PointCube::draw(GLuint shaderProgram, GLuint VAO)
+{
 }
+
 
 bool PointCube::checkCollision(const glm::vec3& playerPos, float playerSize)
 {
@@ -34,9 +24,16 @@ bool PointCube::checkCollision(const glm::vec3& playerPos, float playerSize)
     return false;
 }
 
-void PointCube::render() const{
+void PointCube::render() const 
+{
     if (!collected) {
         glPushMatrix();
+
+        std::cout << "Rendering PointCube at position: ("
+            << position.x << ", "
+            << position.y << ", "
+            << position.z << ")" << std::endl;
+
         glTranslatef(position.x, position.y, position.z);
         glScalef(size, size, size);
 
